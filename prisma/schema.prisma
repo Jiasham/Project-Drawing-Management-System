@@ -1,0 +1,93 @@
+// Durianê CAD — M&E Drawing Management System
+// Prisma schema (SQLite)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Drawing {
+  id          String   @id @default(cuid())
+  number      String   @unique // e.g. FAC118-M-ACMV-C-G-001
+  title       String
+  titleBm     String
+  category    String   // ACMV, CWSP, FPS, General, Infrastructure, Lighting, Small Power, DB/SLD, LPS
+  status      String   // Draft, For Review, Submission, Tender, Construction, As-Built, Approved, Released, Obsolete
+  version     String   // 00, 01, 02...
+  description String?
+  descriptionBm String?
+  drawnBy     String?
+  designedBy  String?
+  checkedBy   String?
+  approvedBy  String?
+  scale       String?
+  mass        Float?   @default(0)
+  material    String?  @default("—")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  files         File[]
+  checklistItems ChecklistItem[]
+  bomItems      BomItem[]
+  auditTrails   AuditTrail[]
+}
+
+model File {
+  id         String   @id @default(cuid())
+  drawingId  String
+  drawing    Drawing  @relation(fields: [drawingId], references: [id], onDelete: Cascade)
+  filename   String
+  fileType   String   // dwg, pdf, step, stl
+  sizeKb     Int
+  uploadedBy String
+  uploadedAt DateTime @default(now())
+}
+
+model ChecklistItem {
+  id          String   @id @default(cuid())
+  drawingId   String
+  drawing     Drawing  @relation(fields: [drawingId], references: [id], onDelete: Cascade)
+  label       String
+  labelBm     String
+  category    String   // Dimensional, Documentation, Manufacturing, Quality
+  checked     Boolean  @default(false)
+  checkedBy   String?
+  checkedAt   DateTime?
+  order       Int      @default(0)
+}
+
+model BomItem {
+  id          String   @id @default(cuid())
+  drawingId   String
+  drawing     Drawing  @relation(fields: [drawingId], references: [id], onDelete: Cascade)
+  partNumber  String
+  description String
+  qty         Int
+  material    String?
+  mass        Float?
+  category    String?
+}
+
+model AuditTrail {
+  id         String   @id @default(cuid())
+  drawingId  String?
+  drawing    Drawing? @relation(fields: [drawingId], references: [id], onDelete: SetNull)
+  user       String
+  action     String   // status_change, upload, checklist_tick, checklist_untick, version_bump, login, create
+  detail     String
+  createdAt  DateTime @default(now())
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  role      String   // Designer, Engineer, Reviewer, Admin
+  active    Boolean  @default(true)
+  lastSeen  DateTime @default(now())
+  createdAt DateTime @default(now())
+}
